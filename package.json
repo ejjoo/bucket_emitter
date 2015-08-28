@@ -1,0 +1,11 @@
+{
+  "name": "bucket_emitter",
+  "version": "1.2.2",
+  "description": "event emitter for archive data",
+  "main": "bucket_emitter.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "euijong joo",
+  "license": "ISC"
+}
