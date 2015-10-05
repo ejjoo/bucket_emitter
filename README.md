@@ -8,15 +8,20 @@ var bucket = bucket_emitter.create({
 	useInterval: false //if this value is true, data event is emitted even If new data is pushed.
 });
 
+for (var i=0; i<1024; ++i) {
+	setTimeout(function() {
+		bucket.push(++i);
+	}, 0);
+}
+
 bucket.on('data', function(fulfilled) {
-  send(fulfilled);
+  console.log(fulfilled);
 }).on('error', function(err) {
   console.log(err);
 });
 
 process.on('beforeExit', function() {
   bucket.close(function(leftData) {
-    send(leftData);
+    console.log(leftData);
   });
 });
-```
