@@ -1,4 +1,5 @@
 # bucket_emitter
+it is a simple library to make an array of bulk data from data streaming. The data array will be emitted when time has expired or data has filled.
 # Usage
 ```js
 var bucket_emitter = require('bucket-emitter')
