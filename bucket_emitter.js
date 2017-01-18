@@ -1,75 +1,82 @@
 var events = require('events');
 
-var bucket = [], 
-	timeout = 0,
-	maxSize = 0,
-	timer = null,
-	emitter = null,
-	useInterval = false;
+function Bucket(opts) {
+	this.bulk = [];
+	this.timeout = opts.timeout || 10000;
+	this.maxSize = opts.maxSize || 1000;
+	this.useInterval = opts.useInterval || opts.use_interval || false;
+	this.emitter = new events.EventEmitter();
+	this.timer = null;
 
-function set_timer() {
-	if (timer) {
-		clearTimeout(timer);
+	if (this.useInterval) {
+		this.set_timer();
+	}
+}
+
+Bucket.prototype.set_timer = function() {
+	if (this.useInterval == false) {
+		return;
 	}
 
-	timer = setTimeout(function() {
+	if (this.timer) {
+		clearTimeout(this.timer);
+	}
+
+	var self = this;
+	this.timer = setTimeout(function() {
 		console.log('timeout')
-		emit();
-		set_timer();
-	}, timeout);
+		self.emit();
+		self.set_timer();
+	}, this.timeout);
 }
 
-function emit() {
-	if (bucket.length == 0) {
+Bucket.prototype.emit = function() {
+	if (this.bulk.length == 0) {
 		return;
 	}
-	emitter.emit('data', bucket.slice());
-	bucket = [];
+	this.emitter.emit('data', this.bulk.slice());
+	this.bulk = [];
 }
 
-function check() {
-	if (bucket.length >= maxSize) {
-		emit();
-		set_timer();
+Bucket.prototype.check = function() {
+	if (this.bulk.length >= this.maxSize) {
+		this.emit();
+		this.set_timer();
 		return;
 	}
 
-	if (!useInterval)
-		set_timer();
+	if (!this.useInterval)
+		this.set_timer();
 }
 
-var bucket_external = {
-	on: function(event, cb) {
-		emitter.on(event, cb);
-		return this;
-	},
-	push: function(data, cb) {
-		if (data == null) {
-			emitter.emit(new Error('data is empty'));
-		}
+function BucketExternal(bucket) {
+	this.bucket = bucket;
+}
 
-		bucket.push(data);
-		check();
-	},
-	close: function(cb) {
-		clearTimeout(timer);
-		if (cb && typeof cb == 'function') {
-			cb(bucket.slice());
-			bucket = [];
-		}
+BucketExternal.prototype.on = function(event, cb) {
+	this.bucket.emitter.on(event, cb);
+	return this;
+}
+
+BucketExternal.prototype.push = function(data, cb) {
+	if (data == null) {
+		this.emitter.emit(new Error('data is empty'));
+	}
+
+	this.bucket.bulk.push(data);
+	this.bucket.check();
+}
+
+BucketExternal.prototype.close = function(cb) {
+	clearTimeout(this.bucket.timer);
+	if (cb && typeof cb == 'function') {
+		cb(this.bucket.bulk.slice());
+		this.bucket.bulk = [];
 	}
 }
 
 function create(opts) {
-	bucket = [];
-	timeout = opts.timeout || 10000,
-	maxSize = opts.maxSize || 1000,
-	useInterval = opts.useInterval || opts.use_interval || false,
-	emitter = new events.EventEmitter();
-	if (useInterval) {
-		set_timer();
-	}
-	return bucket_external;
+	return new BucketExternal(new Bucket(opts));
 }
 
 module.exports = {
